@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Калькулятор льгот</title>
+  
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+    
+    body { background: #f0f4f8; color: #1f2937; min-height: 100vh; padding: 20px; }
+    
+    .container { max-width: 1000px; margin: 0 auto; position: relative; }
+
+    /* Стили заголовка и кнопки Назад */
+    header { 
+      display: flex; 
+      align-items: center; 
+      margin-bottom: 30px; 
+      min-height: 80px;
+      gap: 20px;
+    }
+
+    .back-btn { 
+      display: none; /* Скрыта на первом экране */
+      background: white; 
+      border: 1px solid #d1d5db; 
+      padding: 10px 18px; 
+      border-radius: 12px; 
+      cursor: pointer; 
+      font-weight: 600; 
+      transition: all 0.2s;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+      white-space: nowrap;
+    }
+
+    .back-btn:hover { background: #f9fafb; transform: translateX(-3px); border-color: #2f6fed; color: #2f6fed; }
+
+    .header-text { flex-grow: 1; }
+    h1 { color: #2f6fed; font-size: 32px; }
+    .subtitle { color: #6b7280; font-size: 16px; }
+
+    /* Прогресс-бар */
+    .progress { width: 100%; height: 8px; background: #dbe2ea; border-radius: 10px; margin-bottom: 30px; overflow: hidden; }
+    .progress-bar { height: 100%; width: 0%; background: #2f6fed; transition: 0.4s; }
+
+    /* Экраны */
+    .screen { display: none; background: white; border-radius: 24px; padding: 35px; box-shadow: 0 10px 30px rgba(0,0,0,0.06); animation: fadeIn 0.3s ease; }
+    .screen.active { display: block; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+    /* Кнопки и формы */
+    .main-btn { background: #2f6fed; color: white; border: none; padding: 16px 30px; border-radius: 14px; font-size: 18px; cursor: pointer; transition: 0.3s; width: 100%; margin-top: 10px; }
+    .main-btn:hover { background: #1f5be0; box-shadow: 0 4px 12px rgba(47, 111, 237, 0.3); }
+
+    .category-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 15px; margin-top: 20px; }
+    .category-card { background: #fff; border: 2px solid #f0f0f0; border-radius: 20px; padding: 25px; text-align: center; cursor: pointer; transition: 0.3s; }
+    .category-card:hover { border-color: #2f6fed; background: #f9fbff; transform: translateY(-3px); }
+    .category-card h3 { font-size: 20px; }
+
+    .form-group { margin-bottom: 20px; }
+    label { display: block; margin-bottom: 8px; font-weight: 600; font-size: 15px; }
+    input, select { width: 100%; padding: 12px; border: 1px solid #d1d5db; border-radius: 12px; font-size: 16px; outline: none; }
+    input:focus { border-color: #2f6fed; box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.1); }
+
+    .checkbox { display: flex; align-items: center; gap: 12px; background: #f8fafc; padding: 14px; border-radius: 12px; cursor: pointer; margin-bottom: 10px; border: 1px solid #edf2f7; }
+    .checkbox input { width: auto; cursor: pointer; }
+
+    .child-age-input { margin-top: 10px; padding: 12px; background: #f0f7ff; border-radius: 12px; border: 1px dashed #2f6fed; display: flex; align-items: center; gap: 15px; }
+    .child-age-input input { width: 80px; padding: 8px; }
+
+    /* Результаты */
+    .result-grid { display: grid; grid-template-columns: 1.5fr 1fr; gap: 30px; }
+    .amount { font-size: 48px; color: #10b981; font-weight: 800; margin: 10px 0 25px; }
+    .benefit { background: #f0fdf4; border-left: 4px solid #10b981; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 15px; }
+    .doc { background: #f9fafb; border: 1px solid #e5e7eb; padding: 12px; border-radius: 8px; margin-bottom: 10px; font-size: 14px; }
+
+    .hidden { display: none; }
+
+    @media (max-width: 768px) {
+      .result-grid { grid-template-columns: 1fr; }
+      header { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .back-btn { width: 100%; text-align: center; }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="container">
+    <header>
+      <button class="back-btn" id="backBtn" onclick="goBack()">← Назад</button>
+      <div class="header-text">
+        <h1>СоцПомощь 2026</h1>
+        <div class="subtitle">Калькулятор государственных выплат и льгот</div>
+      </div>
+    </header>
+
+    <div class="progress"><div class="progress-bar" id="progressBar"></div></div>
+
+    <section class="screen active" id="screen0">
+      <div style="text-align:center;">
+        <div style="font-size:70px; margin-bottom:15px;">🛡️</div>
+        <h2 style="margin-bottom:15px;">Узнайте свои права на поддержку</h2>
+        <p style="color:#6b7280; margin-bottom:30px; line-height:1.6;">Инструмент поможет рассчитать сумму пособий и подготовить список необходимых документов для ЦОН или eGov.</p>
+        <button class="main-btn" onclick="nextScreen(1)">Начать проверку</button>
+      </div>
+    </section>
+
+    <section class="screen" id="screen1">
+      <h2 style="margin-bottom:20px;">К какой категории вы относитесь?</h2>
+      <div class="category-grid">
+        <div class="category-card" onclick="selectCategory('family')"><h3>👨‍👩‍👧‍👦 Семья</h3><p>Дети, многодетные</p></div>
+        <div class="category-card" onclick="selectCategory('retired')"><h3>👴 Пенсионер</h3><p>Возраст, стаж</p></div>
+        <div class="category-card" onclick="selectCategory('student')"><h3>🎓 Студент</h3><p>ВУЗ, колледж</p></div>
+        <div class="category-card" onclick="selectCategory('disabled')"><h3>♿ Инвалидность</h3><p>Группы, уход</p></div>
+      </div>
+    </section>
+
+    <section class="screen" id="screen2">
+      <h2 id="formTitle" style="margin-bottom:25px;">Заполните сведения</h2>
+      
+      <div id="familyForm" class="hidden">
+        <div class="form-group">
+          <label>Количество детей</label>
+          <input type="number" id="childrenCount" min="0" placeholder="Напр: 3" oninput="generateChildInputs()">
+        </div>
+        <div id="childrenAgesContainer"></div>
+        <div class="form-group" style="margin-top:20px;"><label>Доход семьи в месяц (₸)</label><input type="number" id="income" placeholder="0"></div>
+        <label class="checkbox"><input type="checkbox" id="childDisability"> У ребенка есть инвалидность</label>
+      </div>
+
+      <div id="retiredForm" class="hidden">
+        <div class="form-group"><label>Размер текущей пенсии (₸)</label><input type="number" id="pension" placeholder="0"></div>
+        <label class="checkbox"><input type="checkbox" id="laborVeteran"> Имею звание "Ветеран труда"</label>
+        <label class="checkbox"><input type="checkbox" id="alone"> Проживаю один (одинокий пенсионер)</label>
+      </div>
+
+      <div id="studentForm" class="hidden">
+        <div class="form-group"><label>Средний доход семьи (₸)</label><input type="number" id="studentIncome" placeholder="0"></div>
+        <label class="checkbox"><input type="checkbox" id="orphan"> Сирота / без попечения родителей</label>
+        <label class="checkbox"><input type="checkbox" id="excellent"> Учусь только на "отлично"</label>
+      </div>
+
+      <div id="disabledForm" class="hidden">
+        <div class="form-group">
+          <label>Группа инвалидности</label>
+          <select id="group"><option value="1">I группа</option><option value="2">II группа</option><option value="3">III группа</option></select>
+        </div>
+        <div class="form-group"><label>Ваш личный доход (₸)</label><input type="number" id="disIncome" placeholder="0"></div>
+        <label class="checkbox"><input type="checkbox" id="fromChildhood"> Инвалидность с детства</label>
+        <label class="checkbox"><input type="checkbox" id="needsCare"> Требуется постоянный посторонний уход</label>
+      </div>
+
+      <button class="main-btn" onclick="calculate()">Показать результат</button>
+    </section>
+
+    <section class="screen" id="screen3">
+      <div class="result-grid" id="pdf-content">
+        <div>
+          <p style="color:#6b7280; font-weight:600;">Итоговая сумма в месяц:</p>
+          <div class="amount" id="amount">0 ₸</div>
+          <h3 style="margin-bottom:15px;">На что вы имеете право:</h3>
+          <div id="benefits"></div>
+          <button class="main-btn" id="pdfBtn" style="background:#059669; margin-top:20px;" onclick="downloadPDF()">Скачать PDF отчет</button>
+        </div>
+        <div>
+          <h3 style="margin-bottom:15px;">Список документов:</h3>
+          <div id="docs"></div>
+          <div style="background:#fff7ed; padding:15px; border-radius:12px; margin-top:20px; border:1px solid #ffedd5;">
+            <p style="font-size:13px; color:#9a3412;">* Расчет является предварительным. Точную сумму утвердит госорган после подачи заявки.</p>
+          </div>
+        </div>
+      </div>
+      <button class="main-btn" style="background:#6b7280; margin-top: 30px;" onclick="nextScreen(0)">Начать заново</button>
+    </section>
+  </div>
+
+  <script>
+    let currentScreen = 0;
+    let category = '';
+
+    function nextScreen(index) {
+      document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+      document.getElementById('screen' + index).classList.add('active');
+      currentScreen = index;
+      
+      // Логика прогресс-бара
+      document.getElementById('progressBar').style.width = (index / 3) * 100 + '%';
+      
+      // Логика кнопки "Назад" - теперь всегда слева и видна везде кроме главного экрана
+      document.getElementById('backBtn').style.display = (index === 0) ? 'none' : 'block';
+      
+      window.scrollTo(0, 0);
+    }
+
+    function goBack() {
+      if (currentScreen > 0) nextScreen(currentScreen - 1);
+    }
+
+    function selectCategory(type) {
+      category = type;
+      const titles = {family: 'Данные семьи', retired: 'Данные пенсионера', student: 'Данные студента', disabled: 'Данные по инвалидности'};
+      document.getElementById('formTitle').innerText = titles[type];
+      
+      ['family', 'retired', 'student', 'disabled'].forEach(c => document.getElementById(c + 'Form').classList.add('hidden'));
+      document.getElementById(type + 'Form').classList.remove('hidden');
+      nextScreen(2);
+    }
+
+    function generateChildInputs() {
+      const count = +document.getElementById('childrenCount').value || 0;
+      const container = document.getElementById('childrenAgesContainer');
+      container.innerHTML = count > 0 ? '<label style="margin-top:15px;">Укажите возраст детей:</label>' : '';
+      for (let i = 1; i <= count; i++) {
+        container.innerHTML += `
+          <div class="child-age-input">
+            <span>Ребенок №${i}</span>
+            <input type="number" class="age-val" placeholder="Лет" min="0" max="23">
+          </div>`;
+      }
+    }
+
+    function calculate() {
+      let amount = 0;
+      let benefits = [];
+      let docs = ['Удостоверение личности', 'Справка о наличии банковского счета (IBAN)'];
+
+      if (category === 'family') {
+        const ages = Array.from(document.querySelectorAll('.age-val')).map(i => +i.value || 0);
+        const income = +document.getElementById('income').value || 0;
+        
+        ages.forEach((age, idx) => {
+          if (age < 1) { amount += 55000; benefits.push(`Пособие по уходу (ребенок №${idx+1} до 1 года)`); }
+          else if (age < 6) { amount += 25000; benefits.push(`Соцвыплата на дошкольника (ребенок №${idx+1})`); }
+          else if (age <= 18) { amount += 18000; benefits.push(`Пособие на школьника (ребенок №${idx+1})`); }
+          else if (age <= 23) { amount += 12000; benefits.push(`Выплата на студента-очника (ребенок №${idx+1})`); docs.push('Справка с места учебы ребенка'); }
+        });
+
+        if (ages.length >= 4) { amount += 65000; benefits.push('Пособие многодетной семье (4+ детей)'); docs.push('Удостоверение многодетной семьи'); }
+        if (income > 0 && income < 200000) { amount += 45000; benefits.push('АСП (малообеспеченная семья)'); docs.push('Справка о доходах за 12 мес.'); }
+        if (document.getElementById('childDisability').checked) { amount += 70000; benefits.push('Пособие по инвалидности ребенка'); docs.push('Справка МСЭ на ребенка'); }
+        if (ages.length > 0) docs.push('Свидетельства о рождении всех детей');
+      }
+
+      else if (category === 'retired') {
+        amount = 45000; benefits.push('Базовая пенсионная выплата');
+        if (document.getElementById('laborVeteran').checked) { amount += 20000; benefits.push('Доплата за звание "Ветеран труда"'); docs.push('Удостоверение ветерана'); }
+        if (document.getElementById('alone').checked) { amount += 15000; benefits.push('Жилищная помощь одиноким'); docs.push('Справка об отсутствии совместно проживающих'); }
+        docs.push('Пенсионное удостоверение');
+      }
+
+      else if (category === 'student') {
+        amount = 41000; benefits.push('Студенческая стипендия (базовая)');
+        if (document.getElementById('excellent').checked) { amount += 15000; benefits.push('Надбавка за отличную учебу'); }
+        if (document.getElementById('orphan').checked) { amount += 70000; benefits.push('Пособие для сирот (полное обеспечение)'); docs.push('Справка о статусе сироты'); }
+        docs.push('Справка из учебного заведения');
+      }
+
+      else if (category === 'disabled') {
+        const grp = document.getElementById('group').value;
+        const fromChild = document.getElementById('fromChildhood').checked;
+        const care = document.getElementById('needsCare').checked;
+        
+        if (grp === '1') amount = 95000; else if (grp === '2') amount = 75000; else amount = 50000;
+        benefits.push(`Пособие по инвалидности (${grp} группа)`);
+        
+        if (fromChild) { amount += 25000; benefits.push('Надбавка: Инвалидность с детства'); }
+        if (care) { amount += 55000; benefits.push('Выплата по уходу (помощнику)'); docs.push('Заявление лица по уходу'); }
+        docs.push('Справка об инвалидности (МСЭ)');
+      }
+
+      document.getElementById('amount').textContent = amount.toLocaleString('ru-RU') + ' ₸';
+      document.getElementById('benefits').innerHTML = benefits.map(b => `<div class="benefit">✔ ${b}</div>`).join('');
+      document.getElementById('docs').innerHTML = [...new Set(docs)].map(d => `<div class="doc">📄 ${d}</div>`).join('');
+      nextScreen(3);
+    }
+
+    function downloadPDF() {
+      const element = document.getElementById('pdf-content');
+      const pdfBtn = document.getElementById('pdfBtn');
+      pdfBtn.style.display = 'none';
+      
+      const opt = { margin: 10, filename: 'Moi_Lgoty_2026.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2 }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
+      
+      html2pdf().set(opt).from(element).save().then(() => {
+        pdfBtn.style.display = 'block';
+      });
+    }
+  </script>
+</body>
+</html>
